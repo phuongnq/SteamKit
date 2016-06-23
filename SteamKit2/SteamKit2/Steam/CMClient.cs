@@ -182,6 +182,8 @@ namespace SteamKit2.Internal
             heartBeatFunc.Stop();
 
             connection.Disconnect();
+
+            serverMap.Clear();
         }
 
         /// <summary>
