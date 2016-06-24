@@ -65,23 +65,35 @@ namespace Tests
         }
 
         [Fact]
-        public void ServerLookupIsClearedWhenDisconnecting()
+        public void ServerListDoesNotStoreDuplicateServers()
         {
-            var msg = new ClientMsgProtobuf<CMsgClientServerList>(EMsg.ClientServerList);
-            msg.Body.servers.Add(new CMsgClientServerList.Server
+            var msg1 = new ClientMsgProtobuf<CMsgClientServerList>(EMsg.ClientServerList);
+            msg1.Body.servers.Add(new CMsgClientServerList.Server
             {
                 server_type = (int)EServerType.CM,
                 server_ip = 0x7F000001, // 127.0.0.1
                 server_port = 1234
             });
 
-            var client = new DummyCMClient();
-            client.HandleClientMsg(msg);
+            var msg2 = new ClientMsgProtobuf<CMsgClientServerList>(EMsg.ClientServerList);
+            msg2.Body.servers.Add(new CMsgClientServerList.Server
+            {
+                server_type = (int)EServerType.CM,
+                server_ip = 0x7F000002, // 127.0.0.2
+                server_port = 1235
+            });
 
+            var client = new DummyCMClient();
+            Assert.Equal(0, client.GetServersOfType(EServerType.CM).Count);
+
+            client.HandleClientMsg(msg1);
             Assert.Equal(1, client.GetServersOfType(EServerType.CM).Count);
 
-            client.Disconnect();
-            Assert.Equal(0, client.GetServersOfType(EServerType.CM).Count);
+            client.HandleClientMsg(msg2);
+            Assert.Equal(2, client.GetServersOfType(EServerType.CM).Count);
+
+            client.HandleClientMsg(msg1);
+            Assert.Equal(2, client.GetServersOfType(EServerType.CM).Count);
         }
 
         static byte[] Serialize(ISteamSerializableHeader hdr)
